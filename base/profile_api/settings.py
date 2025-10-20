@@ -11,24 +11,25 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
-from dotenv import load_dotenv
 import os
-# Build paths inside the project like thi777777s: BASE_DIR / 'subdir'.
+from dotenv import load_dotenv
+
+# Build paths inside the project like BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-j4nul8g4=68u+d8etq=ou*8u-%@8icgy2b1%a=+7noc%^zse+='
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
-
-ALLOWED_HOSTS = ['*']
-
+# Load .env for local development (ignored in production when env vars are provided)
 load_dotenv()
+
+# SECURITY
+# Read secrets and configuration from environment variables for production
+SECRET_KEY = os.environ.get(
+    'DJANGO_SECRET_KEY',
+    'django-insecure-j4nul8g4=68u+d8etq=ou*8u-%@8icgy2b1%a=+7noc%^zse+'
+)
+
+DEBUG = os.environ.get('DJANGO_DEBUG', 'False') == 'True'
+
+ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', '*').split(',')
 
 
 # Application definition
@@ -41,11 +42,12 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'core',
-    'dotenv',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # WhiteNoise should be placed after SecurityMiddleware
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -84,6 +86,18 @@ DATABASES = {
     }
 }
 
+# Use DATABASE_URL environment variable for production databases (Railway/Postgres)
+if os.environ.get('DATABASE_URL'):
+    try:
+        import dj_database_url
+
+        DATABASES['default'] = dj_database_url.parse(
+            os.environ.get('DATABASE_URL'), conn_max_age=600
+        )
+    except Exception:
+        # dj-database-url not installed; fallback to sqlite
+        pass
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -120,6 +134,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Use WhiteNoise storage for compressed static files in production
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
