@@ -95,7 +95,7 @@ if os.environ.get('DATABASE_URL'):
             os.environ.get('DATABASE_URL'), conn_max_age=600
         )
     except Exception:
-        # dj-database-url not installed; fallback to sqlite
+        # dj-database-url not installed; fallback to sqlite jokw
         pass
 
 
